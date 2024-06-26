@@ -85,12 +85,14 @@ tasks {
 	jar {
 		from("LICENSE.txt")
 		archiveBaseName.set("${project.property("archive_base_name")}")
-		archiveAppendix.set("fabric-mc${project.property("minecraft_version")}")
+		archiveAppendix.set("fabric")
+		archiveClassifier.set("mc${project.property("minecraft_version")}")
 	}
 
 	remapJar {
 		archiveBaseName.set("${project.property("archive_base_name")}")
-		archiveAppendix.set("fabric-mc${project.property("minecraft_version")}")
+		archiveAppendix.set("fabric")
+		archiveClassifier.set("mc${project.property("minecraft_version")}")
 	}
 }
 
