@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "crash-command",
+	"version": "${version}",
+	"name": "${name}",
+	"description": "Make a crash the game and JVM using the command",
+	"contact": {
+		"email": "me@NoEul.dev",
+		"homepage": "https://modrinth.com/mod/crashcommand",
+		"issues": "https://github.com/No-Eul/CrashCommand/issues",
+		"sources": "https://github.com/No-Eul/CrashCommand"
+	},
+	"authors": [
+		{
+			"name": "NoEul",
+			"contact": {
+				"email": "me@NoEul.dev",
+				"homepage": "https://NoEul.dev",
+				"sources": "https://github.com/No-Eul"
+			}
+		}
+	],
+	"contributors": [],
+	"license": "MIT",
+	"icon": "assets/crash-command/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["dev.noeul.fabricmod.crashcommand.CrashCommand"],
+		"client": ["dev.noeul.fabricmod.crashcommand.CrashCommand"]
+	},
+	"depends": {
+		"minecraft": "*",
+		"fabricloader": ">=${loader_version}",
+		"fabric-command-api-v2": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"update_checker": true
+		}
+	}
+}
