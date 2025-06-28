@@ -1,19 +1,21 @@
-plugins {
-	id("java")
-	id("fabric-loom") version "latest.release"
-	id("maven-publish")
-}
+@file:Suppress("UnstableApiUsage")
 
-group = "dev.noeul.playground.fabricmod"
-version = property("mod_version")!!
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import kotlin.io.path.Path
+import kotlin.io.path.exists
+
+plugins {
+	// Fabric Loom - https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/maven-metadata.xml
+	id("java")
+	id("fabric-loom") version "1.11.1"
+}
 
 repositories {
 	mavenCentral()
+	maven("https://api.modrinth.com/maven")
 	maven("https://maven.terraformersmc.com/releases")
-	maven("https://api.modrinth.com/maven") { name = "Modrinth" }
-	maven("https://jitpack.io")
 }
-
 
 dependencies {
 	minecraft("com.mojang:minecraft:${property("minecraft_version")}")
@@ -23,36 +25,15 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
 	modImplementation("net.fabricmc.fabric-api:fabric-command-api-v2:[${property("fabric_command_api_v2_version")},)")
 	modImplementation("com.terraformersmc:modmenu:${property("modmenu_version")}")
+
+	// Language Reloaded - https://modrinth.com/mod/language-reload/versions
+	modRuntimeOnly("maven.modrinth:mixintrace:1.1.1+1.17")
+	modRuntimeOnly("maven.modrinth:language-reload:1.6.1+1.21")
 }
 
-loom {
-	sourceSets.forEach {
-		it.resources.files
-			.find { file -> file.name.endsWith(".accesswidener") }
-			?.let(accessWidenerPath::set)
-	}
+// region Toolchain Configurations
 
-	@Suppress("UnstableApiUsage")
-	mixin {
-		defaultRefmapName.set("${property("mod_id")}.refmap.json")
-	}
-
-	runs {
-		getByName("client") {
-			configName = "Minecraft Client"
-			runDir = "run/client"
-			client()
-		}
-
-		getByName("server") {
-			configName = "Minecraft Server"
-			runDir = "run/server"
-			server()
-		}
-	}
-}
-
-val targetJavaVersion: JavaVersion = JavaVersion.toVersion(property("target_java_version")!!)
+val targetJavaVersion = JavaVersion.toVersion(property("targetCompatibility")!!)
 java {
 	targetCompatibility = targetJavaVersion
 	sourceCompatibility = targetJavaVersion
@@ -60,78 +41,113 @@ java {
 		toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion.majorVersion.toInt()))
 }
 
-tasks {
-	compileJava {
-		if (targetJavaVersion.majorVersion.toInt() >= 10 || JavaVersion.current().isJava10Compatible)
-			options.release.set(targetJavaVersion.majorVersion.toInt())
-		this.options.encoding = "UTF-8"
+loom {
+	sourceSets["main"].resources.files
+		.find { file -> file.extension.equals("accesswidener", true) }
+		?.let(accessWidenerPath::set)
+
+	mixin.defaultRefmapName.set("${property("mod_id")}.refmap.json")
+
+	runs {
+		getByName("client") {
+			configName = "Minecraft Client"
+			runDir = "run/client"
+			ideConfigGenerated(true)
+			client()
+		}
+
+		getByName("server") {
+			configName = "Minecraft Server"
+			runDir = "run/server"
+			ideConfigGenerated(true)
+			server()
+		}
 	}
 
+	afterEvaluate {
+		runs.configureEach {
+			vmArgs(
+				"-XX:+IgnoreUnrecognizedVMOptions",
+				"-XX:+AllowEnhancedClassRedefinition",
+				"-XX:HotswapAgent=fatjar",
+				"-Dfabric.development=true",
+				"-Dmixin.debug.export=true",
+				"-Dmixin.debug.verify=true",
+//				"-Dmixin.debug.strict=true",
+//				"-Dmixin.debug.countInjections=true",
+				"-Dmixin.checks.interfaces=true",
+				"-Dfabric.fabric.debug.deobfuscateWithClasspath",
+				"-Dmixin.hotSwap=true",
+			)
+
+			Path(System.getProperty("java.home"), "lib/hotswap/hotswap-agent.jar")
+				.takeIf { it.exists() }
+				.let { vmArg("-Dfabric.systemLibraries=$it") }
+
+			configurations["compileClasspath"].incoming
+				.artifactView {
+					componentFilter {
+						it is ModuleComponentIdentifier
+								&& it.group == "net.fabricmc"
+								&& it.module == "sponge-mixin"
+					}
+				}
+				.files
+				.firstOrNull()
+				.let { vmArg("-javaagent:$it") }
+		}
+	}
+}
+
+// endregion
+
+tasks {
 	processResources {
-		val inputs = mapOf(
+		inputs.properties(
 			"mod_id" to project.property("mod_id"),
-			"version" to project.version,
 			"name" to project.property("mod_name"),
+			"version" to project.version,
+			"java_version" to project.property("targetCompatibility"),
 			"minecraft_version" to project.property("minecraft_version"),
 			"loader_version" to project.property("loader_version"),
 			"fabric_api_version" to project.property("fabric_api_version"),
 		)
-		this.inputs.properties(inputs)
+
 		filesMatching("fabric.mod.json") {
-			expand(inputs)
+			expand(inputs.properties)
 		}
+
+		doLast {
+			fileTree(outputs.files.asPath) {
+				include("*.mixins.json")
+			}.forEach {
+				@Suppress("UNCHECKED_CAST")
+				val mixinConfigs = JsonSlurper().parse(it) as MutableMap<String, Any>
+				mixinConfigs["refmap"] = loom.mixin.defaultRefmapName.get()
+				it.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mixinConfigs)))
+			}
+		}
+	}
+
+	compileJava {
+		if (targetJavaVersion >= JavaVersion.VERSION_1_10 || JavaVersion.current().isJava10Compatible)
+			options.release.set(targetJavaVersion.majorVersion.toInt())
+		options.encoding = "UTF-8"
 	}
 
 	jar {
 		from("LICENSE.txt")
-		archiveBaseName.set("${project.property("archive_base_name")}")
-		archiveAppendix.set("fabric")
-		archiveClassifier.set("mc${project.property("minecraft_version")}")
+		exclude(
+			"assets/**/*.inkscape.svg",
+			"assets/**/*.xcf"
+		)
+
+		archiveBaseName.set("${project.property("archivesBaseName")}")
+		archiveVersion.set("${project.version}+mc${project.property("minecraft_version")}+fabric")
 	}
 
 	remapJar {
-		archiveBaseName.set("${project.property("archive_base_name")}")
-		archiveAppendix.set("fabric")
-		archiveClassifier.set("mc${project.property("minecraft_version")}")
-	}
-}
-
-afterEvaluate {
-	loom.runs.configureEach {
-		vmArgs(
-			"-Dfabric.systemLibraries=${System.getProperty("java.home")}/lib/hotswap/hotswap-agent.jar",
-			"-Dfabric.development=true",
-			"-Dfabric.fabric.debug.deobfuscateWithClasspath",
-			"-Dmixin.debug.export=true",
-			"-Dmixin.debug.verify=true",
-//			"-Dmixin.debug.strict=true",
-			"-Dmixin.debug.countInjections=true",
-			"-Dmixin.hotSwap=true",
-			"-XX:+AllowEnhancedClassRedefinition",
-			"-XX:HotswapAgent=fatjar",
-			"-XX:+IgnoreUnrecognizedVMOptions",
-			"-javaagent:${
-				configurations.compileClasspath.get()
-					.files { it.group == "net.fabricmc" && it.name == "sponge-mixin" }
-					.first()
-			}"
-		)
-	}
-}
-
-// configure the maven publication
-publishing {
-	publications {
-		create<MavenPublication>("mavenJava") {
-			from(components["java"])
-		}
-	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
+		archiveBaseName.set("${project.property("archivesBaseName")}")
+		archiveVersion.set("${project.version}+mc${project.property("minecraft_version")}+fabric")
 	}
 }
