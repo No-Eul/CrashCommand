@@ -21,27 +21,26 @@ public class CrashCommand implements ModInitializer, ClientModInitializer {
 	@Override
 	public void onInitialize() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-				CrashCommand.registerCrash(dispatcher, EnvType.SERVER)
+				CrashCommand.registerCrashCommand(dispatcher, EnvType.SERVER)
 		);
 	}
 
 	@Override
 	public void onInitializeClient() {
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-			CrashCommand.registerCrash(dispatcher, EnvType.CLIENT);
-		});
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				CrashCommand.registerCrashCommand(dispatcher, EnvType.CLIENT)
+		);
 	}
 
-	private static <S extends CommandSource> void registerCrash(CommandDispatcher<S> dispatcher, EnvType envType) {
-		dispatcher.register(
-				LiteralArgumentBuilder.<S>literal("crash")
-						.requires(source -> envType == EnvType.CLIENT || source.hasPermissionLevel(4))
-						.then(
-								LiteralArgumentBuilder.<S>literal(envType.name().toLowerCase(Locale.ROOT))
-										.executes(ctx -> CrashCommand.makeGameCrash(envType))
-										.then(LiteralArgumentBuilder.<S>literal("game").executes(ctx -> CrashCommand.makeGameCrash(envType)))
-										.then(LiteralArgumentBuilder.<S>literal("jvm").executes(ctx -> CrashCommand.makeJvmCrash(envType)))
-						)
+	private static <S extends CommandSource> void registerCrashCommand(CommandDispatcher<S> dispatcher, EnvType envType) {
+		dispatcher.register(LiteralArgumentBuilder.<S>literal("crash")
+				.requires(source -> envType == EnvType.CLIENT || source.hasPermissionLevel(4))
+				.executes(ctx -> CrashCommand.makeGameCrash(envType))
+				.then(LiteralArgumentBuilder.<S>literal(envType.name().toLowerCase(Locale.ROOT))
+						.executes(ctx -> CrashCommand.makeGameCrash(envType))
+						.then(LiteralArgumentBuilder.<S>literal("game").executes(ctx -> CrashCommand.makeGameCrash(envType)))
+						.then(LiteralArgumentBuilder.<S>literal("jvm").executes(ctx -> CrashCommand.makeJvmCrash(envType)))
+				)
 		);
 	}
 
@@ -58,6 +57,6 @@ public class CrashCommand implements ModInitializer, ClientModInitializer {
 			case SERVER -> UnsafeAccess.UNSAFE.putAddress(0, 0);
 			case CLIENT -> GlfwUtil.makeJvmCrash();
 		}
-		throw new AssertionError();
+		throw new AssertionError("How did we get here? This should never be reached.");
 	}
 }

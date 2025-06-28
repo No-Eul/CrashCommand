@@ -22,12 +22,16 @@ Make a crash the game and JVM using the command.
 
 ## Commands
 ### Crash
-`crash (client|server) (game|jvm)`
+`crash [client|server] [game|jvm]`
 * `client` - Make a crash to client. This argument only works on client-side.
-  * `game` - Make the game crash. This argument is the same as pressing <kbd>F3</kbd> <kbd>C</kbd> for 10 seconds on a client.
+  * `game` - Make the game crash. This argument is the same as pressing <kbd>F3</kbd> <kbd>C</kbd> for 10 seconds on a client. Default option.
   * `jvm` - Make the JVM crash. This argument is the same as pressing <kbd>Ctrl</kbd> <kbd>F3</kbd> <kbd>C</kbd> for 10 seconds on a client.
+  * If no argument is specified, default is `game`.
 * `server` - Make a crash to server. This argument only works on server-side.
   * *Sub-arguments are the same as `client`*
+* If no argument is specified, it will be executed depending on environment.
+  * When executed on client with this mod (regardless server host or player), the result will be like `crash client`.
+  * When executed on server console, or by server player without the mod (when has proper permission), the result will be like `crash server`.
 
 ## Known Issues
 * If you join the server as player, and you have permission level `4`, the `client` argument is not suggested and the `server` argument is not executed. **This is not a Crash Command bug.** [Learn more](https://github.com/FabricMC/fabric/issues/3568)
