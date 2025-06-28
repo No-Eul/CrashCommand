@@ -31,7 +31,7 @@
 	"depends": {
 		"minecraft": "*",
 		"fabricloader": ">=${loader_version}",
-		"fabric-command-api-v2": "*"
+		"fabric-command-api-v2": ">=${fabric_command_api_v2_version}"
 	},
 	"custom": {
 		"modmenu": {
