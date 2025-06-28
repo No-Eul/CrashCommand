@@ -6,7 +6,6 @@
 [![MIT License](https://img.shields.io/github/license/No-Eul/CrashCommand)](https://github.com/No-Eul/CrashCommand/blob/main/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/No-Eul/CrashCommand)](https://github.com/No-Eul/CrashCommand/releases/latest)
 <br>
-[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fmodrinth.com%2Fmod%2Fcrashcommand)](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fmodrinth.com%2Fmod%2Fcrashcommand)
 [![Modrinth](https://img.shields.io/modrinth/dt/crashcommand?logo=modrinth)](https://modrinth.com/mod/crashcommand)
 [![GitHub](https://img.shields.io/github/downloads/No-Eul/CrashCommand/total?logo=github)](https://github.com/No-Eul/CrashCommand/releases)
 <br>
