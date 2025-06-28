@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.client.util.GlfwUtil;
 import net.minecraft.command.CommandSource;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.WinNativeModuleUtil;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
@@ -34,7 +35,7 @@ public class CrashCommand implements ModInitializer, ClientModInitializer {
 
 	private static <S extends CommandSource> void registerCrashCommand(CommandDispatcher<S> dispatcher, EnvType envType) {
 		dispatcher.register(LiteralArgumentBuilder.<S>literal("crash")
-				.requires(source -> envType == EnvType.CLIENT || source.hasPermissionLevel(4))
+				.requires(source -> envType == EnvType.CLIENT || ((ServerCommandSource) source).hasPermissionLevel(4))
 				.executes(ctx -> CrashCommand.makeGameCrash(envType))
 				.then(LiteralArgumentBuilder.<S>literal(envType.name().toLowerCase(Locale.ROOT))
 						.executes(ctx -> CrashCommand.makeGameCrash(envType))
